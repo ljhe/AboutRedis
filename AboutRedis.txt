@@ -1,0 +1,75 @@
+Redis特性
+1.速度快
+	数据存在哪?
+	数据存在了内存条
+	什么语言写?
+	用的是C语言
+	线程模型?
+	单线程
+2.持久化
+	Redis所有数据保存在内存中,对数据的更新将异步地保存到磁盘上
+3.多种数据结构
+	字符串
+	哈希
+	列表
+	集合
+	有序集合
+4.支持多种客户端语言
+5.功能丰富
+	发布订阅
+	支持lua脚本
+	支持事务
+	支持pipeline
+6."简单"
+7.主从复制
+8.高可用,分布式
+	高可用(Redis-Sentinel)
+	分布式(Redis-Cluster)
+	
+Redsi典型应用场景
+1.缓存系统
+2.计数器
+3.消息队列系统
+4.排行榜
+5.社交网络
+6.实时系统
+
+Redis常用配置
+1.daemonize(是否守护进程)
+默认是no,建议设置为yes，启动日志会写到日志文件中
+2.port
+端口号,默认端口号是6379
+3.logfile
+日志名
+4.dir
+Redis工作目录,例如日志文件,持久化文件报错到该目录中
+
+Redis启动方式
+建议使用redis的配置文件启动
+window下:
+1.进入redis目录
+2.创建一个config文件夹
+3.复制redis.windows.conf 到config目录下 修改名为redis-6379.conf (因为实际生产中 一台服务器可能启动多个redis服务器)
+3.按上面常用配置参数进行相应修改
+4.返回redis目录 创建data目录 存放日志等信息
+5.新建6379.log文件
+7.启动redis服务端:redis-server.exe config/redis-6379.conf (启动完成之后去日志文件下查看启动日志 不会再像直接启动的时候将日志输入cli在控制台了)
+
+Redis通用命令
+1.keys (计算redis中所有的key)
+keys * 
+时间复杂度为O(n) redis是单线程 生产环境不能随便用这个命令 扫描所有的key可以使用scan命令
+2.dbsize (计算redis中所有key的大小)
+时间复杂度为O(1) redis内置一个计数器 会返回所有key的个数
+3.exists key (判断一个key是否存在)
+时间复杂度为O(1)
+4.del key (删除key)
+时间复杂度为O(1) 成功删除返回1 删除失败比如key不存在返回0
+5.expire key (设置key的过期时间)
+时间复杂度为O(1)
+ttl key (查看key还有多长时间过期) -2代表key已经不存在 -1代表key存在并且没有过期时间
+presist (去除key的过期时间)
+6.type key (查看key的数据类型)
+时间复杂度为O(1)
+
+
