@@ -123,4 +123,44 @@ presist (去除key的过期时间)
 6.type key (查看key的数据类型)
 时间复杂度为O(1)
 
+Redis其它功能
+1.慢查询
+	生命周期:
+	1.客户端发送命令
+	2.Redis等待执行(单线程)
+	3.执行命令
+	4.返回结果
+	慢查询发生在第3阶段(列如keys *)
+	客户端超时不一定是慢查询,但慢查询是客户端超时的一个可能
+2.pipline(流水线)
+	将一批命令进行打包发送到服务端,服务端批量解决之后再按顺序返回给客户端
+	使用pipline,减少了客户端发送命令到服务端以及服务端发送结果到客户端的一个时间(减少了网络时间)
+	例如for循环使用中执行多次redis命令,效率就不如将这些命令打包使用pipline效率来的高
+	注意:pipline每次只能作用在一个redis节点上,pipline区别于原生M操作不是原子的,但是返回的顺序是原子的
+3.发布订阅
+	角色:发布者(publisher)
+		 订阅者(subscriber)
+		 频道(channel)
+	发布者(cli客户端)发送一个hello命令,通过服务端(channel)转发到订阅者(cli客户端)
+	注意:一个新的订阅者是再订阅一个频道之后,它是收不到之前频道发布的消息,这里不能做一个消息的堆积,开发中要注意这种场景
+	常用API：publish channel message(发布一条订阅消息)
+			 subscribe [channel](订阅一个或多个频道)
+			 unsubscribe [channel](取消一个或多个订阅频道)
+	发布订阅和消息队列的区别:发布订阅是发布一条消息,所有订阅者都可以收到;消息队列是发布一条消息,订阅者去抢这条消息,只有一个订阅者可以收到(例如抢红包)		 
+4.Bitmap(位图)
+	redis是可以直接操作位数
+	setbit key offset value(给位图指定索引设置值
+	getbit key offset(获取位图指定索引的值)
+	bigcount key [start end](获取位图指定范围start到end,单位为字节,如果不指定就是获取全部位值为1的个数)
+5.HyperLogLog
+	常用API:pfadd key element(向HyperLogLog添加元素)
+			pfcount key(计算HyperLogLog的独立总数)
+			pfmerge destkey sourcekey(合并多个HyperLogLog)
+	做独立用户数的统计,注意:HyperLogLog是有错误率的,错误率为0.81%;HyperLogLog是不能取出单条数据的		
+6.GEO(地理信息定位)
+	存储经纬度,计算两地距离,范围计算等
+	常用API:geoadd key longitude latitude member(增加地理位置信息)
+			geopos key member(获取地理位置信息)
+			geodist key member1,member2(获取两个地理位置的距离)
+	
 
