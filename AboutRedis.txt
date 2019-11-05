@@ -162,5 +162,67 @@ Redis其它功能
 	常用API:geoadd key longitude latitude member(增加地理位置信息)
 			geopos key member(获取地理位置信息)
 			geodist key member1,member2(获取两个地理位置的距离)
-	
 
+Redis持久化
+redis所有数据保存在内存中,对数据的更新将异步地保存到磁盘上(如果机器或者进程崩掉,没有保存到磁盘上,数据就会丢失)
+持久化方式:1.快照(mysql dump;redis RDB)
+		   2.写日志(mysql binlog;Hbase Hlog;redis AOF)
+RDB
+1.什么是RDB
+	redis创建一个RDB文件(二进制),将数据保存在硬盘上;在需要载入的时候,在把这个RDB文件载入到内存
+	(也是一个复制的媒介,在主从复制之中也是用的这种方法)
+2.触发机制-主要三种方式
+	1.save(同步)
+	如果数据量比较大,就会造成阻塞;如存在老的RDB文件,新的会替换老的;时间复杂度为O(n)
+	2.bgsave(异步)
+	如存在老的RDB文件,新的会替换老的;时间复杂度为O(n)
+	save和bgsave比较
+		IO类型:save同步;bgsave异步
+		是否阻塞:save阻塞;bgsave也会阻塞,不过是发生在创建子进程fork命令中
+		优点:save不会消耗额外内存;bgsave不阻塞客户端命令
+		缺点:save阻塞客户端命令;bgsave需要fork,消耗内存
+	3.自动
+	配置文件中配置条件,当任一条件被满足的时候,自动使用bgsave命令来生成RDB文件
+3.触发机制-不容忽略方式
+	1.全量复制(主从复制时,主会自动生成RDB文件)
+	2.debug reload
+	3.shutdown
+AOF
+1.RDB现存问题
+	1.耗时 耗性能
+		O(n)数据:耗时
+		fork():消耗内存
+		Disk I/O:I/O消耗内存
+	2.不可控 容易丢失数据(不能确定什么时候宕机)
+2.什么是AOF
+	当客户端运行写命令时,会在AOF日志中追加一条命令
+3.AOF三种策略
+	1.always(每条命令都写到硬盘中;I/O开销非常大)
+	2.everysec(每秒;可能会丢失1s数据)
+	3.no(根据操作系统决定;不用管;不可控)
+4.AOF重写
+	把一些重复的,过期的,没有用的,以及一些可优化的命令进行化简成一个很小的AOF文件
+	1.减少硬盘占用量
+	2.加快恢复速度
+	AOF重写的两种实现方式
+		1.bgwriteaof
+		2.AOF重写配置
+			配置名:auto-aof-rewrite-min-size	含义:AOF文件重写需要的尺寸
+			配置名:auto-aof-rewrite-percentage	含义:AOF文件增长率
+			统计名:aof-current-size				含义:AOF当前尺寸(单位为字节)
+			统计名:aof-base-size				含义:AOF上次启动和重写的尺寸(单位为字节)
+			参数:appendonly yes(打开AOF功能)
+				 appendfilename "appendonly-${port}.aof"(AOF文件名)
+				 appendfsync everysec(AOF同步的策略)
+				 no-appendfsync-on-rewrite yes(在重写的时候,是否做AOF的append操作;为了考虑性能,这里选择重写的时候,不能做AOF的append操作)
+				 auto-aof-rewrite-percentage 100
+				 auto-aof-rewrite-min-size 64mb
+RDB与AOF
+	命令		RDB			AOF
+	启动优先级	低			高		假如工作目录下既有RDB也有AOF,在服务器挂机重启后,会优先加载AOF
+	体积		小			大
+	恢复速度	快照		慢
+	数据安全性	丢数据		根据策略决定
+	轻重		重			轻
+	RDB最佳策略		"关"	集中管理
+	AOF最佳策略		"开":缓存和存储		AOF重写集中管理
