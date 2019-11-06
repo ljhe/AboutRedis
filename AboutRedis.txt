@@ -226,3 +226,57 @@ RDB与AOF
 	轻重		重			轻
 	RDB最佳策略		"关"	集中管理
 	AOF最佳策略		"开":缓存和存储		AOF重写集中管理
+	
+Redis复制的原理与优化
+1.什么是主从复制
+	进行一个数据的备份,避免机器宕机等带来的问题;可以进行一个流量的分流和负载的均衡;数据流是单向的,从master到slave
+2.复制的配置
+	用命令进行主从复制
+		复制:从客户端执行:slaveof 127.0.0.1:6379
+		取消复制:从客户端执行:slaveof no one
+	修改配置进行主从复制
+		slaveof ip port
+		slave-read-only yes(主节点只执行读的操作;如果从节点可以写入,那主从数据就不一致了)
+	查看从节点连接状态:redis-cli -p 6380 info replication
+3.全量复制和部分复制
+	全量复制开销:
+		1.bgsave时间
+		2.RDB文件传输时间
+		3.从节点清空数据
+		4.从节点加载RDB的时间
+		5.可能的AOF重写时间
+4.故障处理
+	1.size宕机
+	2.master宕机
+5.开发运维常见问题
+
+Redis Sentinel
+1.主从复制高可用
+	1.进行数据备份
+	2.从节点读取数据,减少主节点压力
+	发生问题:一主多从,如果master宕机,需要将一个从节点执行slaveof no one,然后将该节点晋升为主节点,其余从节点去连接这个新的主节点
+	这里有几个问题,例如怎么检测master是否宕机,宕机之后需要一个脚本来执行上诉一个过程
+	这里就引入了redis sentinel,来进行高可用的实现
+2.架构说明
+	客户端从redis sentinel获取数据,sentinel来监控主节点和从节点
+	sentinel故障转移:
+		1.多个sentinel发现并确认master有问题
+		2.选举出一个sentinel作为领导
+		3.该sentinel选出一个slave作为新的master
+		4.通知其余slave成为新的master的slave
+		5.通知客户端主从变化
+		6.等待老的master复活成为新的master的slave
+3.安装配置
+	1.配置开启主从节点
+	2.配置开启sentinel监控主节点(sentinel是特殊的redis,它不储存数据,只用来监控master)
+	3.sentinel详细配置节点
+		1.port ${port}	(端口号)
+		2.dir ""		(日志存储路径)
+		3.logfile "${port}.log"		(日志文件名)
+		4.sentinel monitor mymaster 127.0.0.1 7000 2 (mymaster: 主节点名 127.0.0.1 7000:主节点的IP和端口号 2:多少个sentinel发现master有问题就执行故障处理)
+		5.sentinel down-after-milliseconds mymaster 30000 (主节点超过30000毫秒未响应就认为该master有问题)
+		6.sentinel parallel-syncs mymaster 1 (从节点复制新的master是并发还是串行,这里配置为1,代表每次只能复制1个,这样可以减轻master的压力)
+		7.sentinel failover-timeout mymaster 180000 (故障转移时间)
+4.客户端连接
+5.实现原理
+6.常见开发运维问题
