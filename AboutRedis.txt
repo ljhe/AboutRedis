@@ -271,12 +271,29 @@ Redis Sentinel
 	2.配置开启sentinel监控主节点(sentinel是特殊的redis,它不储存数据,只用来监控master)
 	3.sentinel详细配置节点
 		1.port ${port}	(端口号)
-		2.dir ""		(日志存储路径)
-		3.logfile "${port}.log"		(日志文件名)
-		4.sentinel monitor mymaster 127.0.0.1 7000 2 (mymaster: 主节点名 127.0.0.1 7000:主节点的IP和端口号 2:多少个sentinel发现master有问题就执行故障处理)
-		5.sentinel down-after-milliseconds mymaster 30000 (主节点超过30000毫秒未响应就认为该master有问题)
-		6.sentinel parallel-syncs mymaster 1 (从节点复制新的master是并发还是串行,这里配置为1,代表每次只能复制1个,这样可以减轻master的压力)
-		7.sentinel failover-timeout mymaster 180000 (故障转移时间)
+		2.daemonize yes (守护进程方式启动)
+		3.dir ""		(日志存储路径)
+		4.logfile "${port}.log"		(日志文件名)
+		5.sentinel monitor mymaster 127.0.0.1 7000 2 (mymaster: 主节点名 127.0.0.1 7000:主节点的IP和端口号 2:多少个sentinel发现master有问题就执行故障处理)
+		6.sentinel down-after-milliseconds mymaster 30000 (主节点超过30000毫秒未响应就认为该master有问题)
+		7.sentinel parallel-syncs mymaster 1 (从节点复制新的master是并发还是串行,这里配置为1,代表每次只能复制1个,这样可以减轻master的压力)
+		8.sentinel failover-timeout mymaster 180000 (故障转移时间)
+		启动命令:redis-sentinel redis-sentinel-26379.conf(sentinel配置文件名称)
 4.客户端连接
+	1.sentinel地址集合
+	2.masterName
+	3.不是代理模式
 5.实现原理
-6.常见开发运维问题
+	sentinel里有三个定时任务:
+	1.每10s每个sentinel对master和slave执行info
+		1.发现slave节点
+		2.确认主从关系
+	2.每2s每个sentinel通过master节点的channel交换信息(pub/sub)
+		1.通过__sentinel__:hello频道交互
+		2.交互对节点的"看法"和	自身信息
+	3.每1s每个sentinel对其他sentinel和redis执行ping(心跳检测的过程,失败判定的依据)
+6.总结
+	Redis sentinel 是Redis的高可用实现方案：
+	故障发现,故障自动转移,配置中心,客户端通知
+	尽可能在不同物理机上部署Redis sentinel所有节点
+	客户端初始化时连接的是sentinel节点集合,不再是具体的redis节点,但sentinel只是配置中心而不是代理
