@@ -297,3 +297,59 @@ Redis Sentinel
 	故障发现,故障自动转移,配置中心,客户端通知
 	尽可能在不同物理机上部署Redis sentinel所有节点
 	客户端初始化时连接的是sentinel节点集合,不再是具体的redis节点,但sentinel只是配置中心而不是代理
+	
+Redis Cluster
+	1.呼唤集群
+		为什么呼唤?
+			1.并发量
+			2.数据量
+	2.数据分布
+		1.哈希分布 特点:数据分散度高,键值分布业务无关,无法顺序访问,支持批量操作	典型产品:一致性哈希Memcache,Redis Cluster,其他缓存产品
+			1.节点取余分区(hash(key)%nodes)
+				客户端分片:哈希+取余
+				数据节点关系变化,导致数据迁移
+				迁移数量和添加节点数量有关,建议翻倍扩容
+			2.一致性哈希分布(一个闭合的环,数据落在这个环上会顺时针去寻找节点)
+				客户端分片:哈希+顺时针(优化取余)
+				只影响邻近节点,但是还是有数据迁移
+				翻倍伸缩:保证最小迁移和负载均衡
+			3.虚拟槽分区(redis cluster使用的方式)
+				预设管理槽:每个槽映射一个数据子集,一般比节点数大
+				良好的哈希函数:例如CRC16
+				服务端管理节点,槽,数据
+		2.顺序分布 特点:数据分散度易倾斜,键值业务相关,可顺序访问,支持批量操作 典型产品:BigTable Hbase
+	3.基本架构
+		1.节点	(有多个节点,都会复制读写)
+		2.meet	(节点之间的互相通信)
+		3.指派槽 (新增节点,指派槽之后才可以进行正常的读写)
+		4.复制	(内部实现了高可用,主节点宕机,会有从节点顶上来,不过这里用的不是sentinel)
+	4.两种安装
+		1.原生命令安装
+			1.配置开启节点
+				port ${port}
+				daemonize yes
+				dir ""
+				dbfilename "dump-${port}.rdb"
+				logfile "${port}.log"
+				cluster-enabled yes	(是否为cluster节点)
+				cluster-node-timeout 15000 (超时时间)
+				cluster-config-file "nodes-${port}.conf" (集群节点的配置)
+				cluster-require-full-coverage no (有一个节点出问题,其余节点是否停止服务)
+				
+				开启redis: redis-server redis-7000.conf
+				开启redis: redis-server redis-7001.conf
+				开启redis: redis-server redis-7002.conf
+			2.meet
+				redis-cli -h 127.0.0.1 -p 7000 cluster meet 127.0.0.1 70001 
+				redis-cli -h 127.0.0.1 -p 7000 cluster meet 127.0.0.1 70002 
+			3.指派槽
+				redis-cli -h 127.0.0.1 -p 7000 cluster addslots {0...5461}
+				redis-cli -h 127.0.0.2 -p 7000 cluster addslots {5462...10922}
+				redis-cli -h 127.0.0.3 -p 7000 cluster addslots {10923...16383}
+			4.主从关系的分配(只有分配了主从关系,才可以实现故障自动转移)
+				redis-cli -h 127.0.0.3 -p 7003 cluster replicate ${node-id-7000}
+		2.官方工具安装(Ruby)
+			1.下载 编译 安装 ruby
+			2.安装rubygem redis
+			3.安装redis-trib.rb
+			
