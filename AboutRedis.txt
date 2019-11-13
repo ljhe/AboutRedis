@@ -54,7 +54,7 @@ Redis特性
 				sunion 计算并集
 				sdiff|sinter|sunion store destkey (将差集/交集/并集结果保存在destkey中)
 	有序集合
-		特点:有序(存的value值为 score+element) 无重复(score可以重复 element可以重复)
+		特点:有序(存的value值为 score+element) 无重复(score可以重复 element不可以重复)
 		重要API:zadd (zadd key score element 添加score和element)
 				zrem (zrem key emelent 删除element)
 				zscore (zscore key element 返回emelent的score)
@@ -352,4 +352,16 @@ Redis Cluster
 			1.下载 编译 安装 ruby
 			2.安装rubygem redis
 			3.安装redis-trib.rb
-			
+	5.集群伸缩
+		原理:槽和数据在节点之间的移动
+		扩容集群
+			1.准备新节点
+			2.加入集群
+			3.迁移槽和数据
+				1.迁移槽计划
+				2.计算槽
+				3.迁移数据
+		收缩集群
+			1.下线迁移槽
+			2.忘记节点
+			3.关闭节点
